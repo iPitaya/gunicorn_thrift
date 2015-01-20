@@ -27,6 +27,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 import traceback
 import os
+import sys
+import logging
+from gunicorn import util
 
 from gunicorn.glogging import Logger
 
@@ -64,3 +67,22 @@ class ThriftLogger(Logger):
         except:
             self.error(traceback.format_exc())
 
+    def _set_handler(self, log, output, fmt):
+        # remove previous gunicorn log handler
+        h = self._get_gunicorn_handler(log)
+        if h:
+            log.handlers.remove(h)
+
+        if output is not None:
+            if output == "*":
+                #h = sys.stdout
+                h = logging.StreamHandler(stream = sys.stdout)
+            elif output == "-":
+                h = logging.StreamHandler()
+            else:
+                util.check_is_writeable(output)
+                h = logging.FileHandler(output)
+
+            h.setFormatter(fmt)
+            h._gunicorn = True
+            log.addHandler(h)
